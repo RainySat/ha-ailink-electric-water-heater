@@ -1,5 +1,5 @@
 {
-  "name": "Ai-LiNK 电热水器 (A.O. Smith)",
+  "name": "Ai-LiNK Water Heater (A.O. Smith)",
   "render_readme": true,
   "homeassistant": "2025.1.0",
   "country": ["CN"]
