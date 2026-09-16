@@ -37,7 +37,7 @@ class AilinkEntity(CoordinatorEntity[AilinkCoordinator]):
             identifiers={(DOMAIN, self._device_id)},
             name=self.coordinator.device_name,
             manufacturer=MANUFACTURER,
-            model=self.coordinator.model_name or data.get("productName") or "电热水器",
+            model=self.coordinator.model_name or data.get("productName") or "Water heater",
             sw_version=status_entity.get("ccuVersion") or data.get("ccuVersion") or None,
             suggested_area=mapping.get("roomName") or None,
         )

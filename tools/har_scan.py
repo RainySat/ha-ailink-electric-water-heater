@@ -69,7 +69,7 @@ def main() -> int:
     har = json.load(open(sys.argv[1]))
 
     issuances: dict[str, list[str]] = {}
-    print(f"{'时间(本地)':<14} {'方法':<5} {'主机+路径':<62} {'状态':<5} 备注")
+    print(f"{'time (local)':<14} {'verb':<5} {'host + path':<62} {'status':<5} notes")
     print("-" * 130)
 
     for entry in har["log"]["entries"]:
@@ -86,21 +86,21 @@ def main() -> int:
         low = body.lower()
         for word in CRED_WORDS:
             if word in low:
-                notes.append(f"body含{word}")
+                notes.append(f"body contains {word}")
         # tokens anywhere
         carriers = {
-            "请求头": json.dumps(req.get("headers", [])),
-            "请求体": body,
-            "响应头": json.dumps(resp.get("headers", [])),
-            "响应体": (resp.get("content") or {}).get("text", "") or "",
+            "request headers": json.dumps(req.get("headers", [])),
+            "request body": body,
+            "response headers": json.dumps(resp.get("headers", [])),
+            "response body": (resp.get("content") or {}).get("text", "") or "",
         }
         for where, blob in carriers.items():
             for token in find_tokens(blob):
                 info = decode_jwt(token)
                 if not info:
                     continue
-                stamp = f"{info.get('current_time', '?')} 签发 / exp {info.get('exp_time', '?')}"
-                notes.append(f"{where}有JWT[{stamp}]")
+                stamp = f"{info.get('current_time', '?')} issued / exp {info.get('exp_time', '?')}"
+                notes.append(f"{where} carries a JWT [{stamp}]")
                 issuances.setdefault(info.get("current_time", "?"), []).append(path)
 
         print(
@@ -109,14 +109,14 @@ def main() -> int:
         )
 
     print()
-    print("=== 看到的 token 签发时间线（去重）===")
+    print("=== token issuance timeline (deduplicated) ===")
     for minted in sorted(issuances):
         where = sorted(set(issuances[minted]))
-        print(f"  {minted}  出现于 {len(where)} 处：{', '.join(where[:3])}")
+        print(f"  {minted}  seen in {len(where)} place(s): {', '.join(where[:3])}")
     if len(issuances) <= 1:
-        print("  → 只有一张卡：这次抓包**没有出现换卡动作**，换卡不是靠 HTTP 接口")
+        print("  -> only one token: this capture contains no rotation, so the rotation did not happen over HTTP here")
     else:
-        print("  → 有多张卡：新出现的那张就是这次抓到的换卡结果，往上找它第一次出现在哪个响应里")
+        print("  -> several tokens: the newly appearing one is the rotated token; find the response it first appeared in")
     return 0
 
 

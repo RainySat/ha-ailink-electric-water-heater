@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Connect to the A.O. Smith cloud",
-        "description": "Paste the credentials captured from the official AI家智控 / AI-LiNK 智慧家 app. The token is renewed automatically, so it only has to be captured once.",
+        "description": "Paste the credentials captured from the official AI-LiNK app (China). The token is renewed automatically, so it only has to be captured once.",
         "data": {
           "access_token": "access_token (JWT)",
           "user_id": "user_id",
@@ -44,7 +44,7 @@
       }
     },
     "error": {
-      "invalid_auth": "Authentication failed: wrong token/user_id/family_id or the token expired",
+      "invalid_auth": "Authentication failed: wrong token / user_id / family_id, or the captured token is no longer accepted",
       "signature_error": "The cloud rejected our request signature (校验失败)",
       "cannot_connect": "Cannot reach the A.O. Smith cloud",
       "device_not_found": "Device not found, please check the deviceId"

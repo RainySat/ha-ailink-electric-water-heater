@@ -1,7 +1,6 @@
 """Async client for the Ai-LiNK (A.O. Smith) cloud.
 
-The protocol was reverse engineered from the official "AI家智控 / AI-LiNK 智慧家"
-H5 client. Two things are worth calling out:
+The protocol was reverse engineered from the official AI-LiNK H5 client (China). Two things are worth calling out:
 
 * every ``/AiLinkService`` request is signed (``md5data``/``sign``) over the exact
   bytes that are transmitted, and carries an ``encode`` digest inside the body;
@@ -340,7 +339,7 @@ class AilinkClient:
                         entry.get("deviceName")
                         or mapping.get("deviceName")
                         or entry.get("productName")
-                        or "A.O. Smith 设备"
+                        or "A.O. Smith device"
                     ),
                     "product_name": entry.get("productName") or "",
                     "model": entry.get("productModel")

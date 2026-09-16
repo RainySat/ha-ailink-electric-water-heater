@@ -53,6 +53,9 @@ switch_command = protocol.switch_command
 temperature_command = protocol.temperature_command
 
 
+# NOTE: the Chinese strings below are *verbatim* payloads from the vendor cloud
+# (fault text, business error messages). They are test data, not prose - do not
+# translate them, the integration has to pass them through unchanged.
 def make_status(output: dict) -> dict:
     """Build a device record in the shape the cloud returns."""
     status_info = json.dumps(

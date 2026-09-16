@@ -37,8 +37,8 @@ async def async_setup_entry(
     )
     if not specs:
         _LOGGER.warning(
-            "设备状态里没有任何可识别的开关字段，未创建开关实体。"
-            "可在集成选项里打开「创建全部开关实体」后重载。"
+            "The device does not report any switch field, so no switch entity was created. "
+            "Enable \"Create all switch entities\" in the integration options and reload."
         )
     async_add_entities(
         AilinkSwitch(coordinator, spec_key, status_field, command_field, icon)

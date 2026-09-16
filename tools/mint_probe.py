@@ -60,9 +60,9 @@ def describe(token: str) -> str:
         data = decode(token)
         issued = datetime.fromtimestamp(data["current"] / 1000)
         exp = datetime.fromtimestamp(data["exp"])
-        return f"签发={issued:%m-%d %H:%M:%S} exp={exp:%m-%d %H:%M:%S}"
+        return f"issued={issued:%m-%d %H:%M:%S} exp={exp:%m-%d %H:%M:%S}"
     except Exception:  # noqa: BLE001
-        return "（无法解析）"
+        return "(unparsable)"
 
 
 class Probe:
@@ -127,17 +127,17 @@ async def run_round(probe: Probe, log, device_id: str) -> None:
     token = await probe.current_token()
     exp = decode(token)["exp"]
     left = exp - time.time()
-    log(f"\n[{datetime.now():%H:%M:%S}] 账号当前最新卡: {describe(token)}")
+    log(f"\n[{datetime.now():%H:%M:%S}] account's newest token: {describe(token)}")
     if left > 0:
-        log(f"  还有 {int(left)} 秒才过期 → 本轮不测（rotation 只在过期后发生）")
+        log(f"  still valid for {int(left)}s -> skipping (rotation only happens after expiry)")
         return
 
-    log(f"  已过期 {int(-left)} 秒，开始逐个敲门：")
+    log(f"  expired {int(-left)}s ago, knocking on each candidate:")
     minted: str | None = None
     for path, body in CANDIDATES:
         status, headers, text = await probe.call(path, body, token)
         new = probe.header_token(headers)
-        mark = "✅ 发新卡" if new else "❌ 无"
+        mark = "MINTED " if new else "none   "
         note = describe(new) if new else text[:70].replace("\n", " ")
         log(f"    {path:<32} HTTP {status:<4} {mark}  {note}")
         if new and not minted:
@@ -145,10 +145,10 @@ async def run_round(probe: Probe, log, device_id: str) -> None:
         await asyncio.sleep(0.4)
 
     if not minted:
-        log("  → 没有任何端点发新卡：说明换卡还需要 App 侧的会话状态，我们做不到全自动")
+        log("  -> no endpoint minted a token: rotation would depend on app-side state, so we cannot automate it")
         return
 
-    # 新卡是否真的可用？账号最新卡是否已变成它？
+    # Is the minted token usable, and did the account record move to it?
     status, _, text = await probe.call(
         "/appDevice/getDeviceCurrInfo", {"deviceId": device_id}, minted
     )
@@ -158,15 +158,16 @@ async def run_round(probe: Probe, log, device_id: str) -> None:
     except Exception:  # noqa: BLE001
         pass
     again = await probe.current_token()
-    log(f"  用新卡读设备: HTTP {status} model={model!r}")
-    log(f"  再问 getLastToken: {describe(again)}")
-    log("  ✅ 结论：我们可以自己换卡，集成不再需要手机 App" if again == minted
-        else "  ⚠️ 新卡可用但云端记录的仍不是它，需再看")
+    log(f"  reading the device with the minted token: HTTP {status} model={model!r}")
+    log(f"  asking getLastToken again: {describe(again)}")
+    log("  => we can mint tokens ourselves; the integration no longer needs the phone app"
+        if again == minted
+        else "  => the token works but the account record did not move to it, needs another look")
 
 
 async def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--at", default="", help="HH:MM:SS 开始；留空立即开始")
+    parser.add_argument("--at", default="", help="start at HH:MM:SS; leave empty to start immediately")
     parser.add_argument("--rounds", type=int, default=2)
     parser.add_argument("--gap", type=int, default=120)
     parser.add_argument("--log", default="/tmp/mint_probe.log")
@@ -174,7 +175,7 @@ async def main() -> int:
     parser.add_argument(
         "--device-id",
         required=True,
-        help="用于验证新 token 是否可用的设备 id（可从 tools/probe.py 的输出里取）",
+        help="device id used to verify the minted token (see the output of tools/probe.py)",
     )
     args = parser.parse_args()
 
@@ -198,7 +199,7 @@ async def main() -> int:
         )
         wait = (target - datetime.now()).total_seconds()
         if wait > 0:
-            log(f"[{datetime.now():%H:%M:%S}] 等到 {args.at}（{int(wait)} 秒）后开始…")
+            log(f"[{datetime.now():%H:%M:%S}] waiting until {args.at} ({int(wait)}s) before starting...")
             await asyncio.sleep(wait)
 
     async with aiohttp.ClientSession() as session:
@@ -207,7 +208,7 @@ async def main() -> int:
             try:
                 await run_round(probe, log, args.device_id)
             except Exception as err:  # noqa: BLE001
-                log(f"  本轮出错: {type(err).__name__}: {err}")
+                log(f"  round failed: {type(err).__name__}: {err}")
             await asyncio.sleep(args.gap)
     return 0
 

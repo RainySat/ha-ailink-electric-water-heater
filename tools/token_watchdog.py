@@ -61,13 +61,13 @@ async def knock(client: "api.AilinkClient", device_id: str) -> tuple[bool, str]:
     try:
         status = await client.async_get_device_status(device_id)
     except api.AilinkError as err:
-        return False, f"API 错误 {type(err).__name__}: {err}"
+        return False, f"API error {type(err).__name__}: {err}"
     output = protocol.extract_output_data(status)
     if not output:
-        return False, "云端返回空数据（token 已不被接受）"
+        return False, "the cloud returned no data (token no longer accepted)"
     return True, (
-        f"实时 {output.get('realTemp')}°C / 设定 {output.get('heatingTemp')}°C "
-        f"/ 电源 {output.get('powerStatus')}"
+        f"now {output.get('realTemp')}C / target {output.get('heatingTemp')}C "
+        f"/ power {output.get('powerStatus')}"
     )
 
 
@@ -75,7 +75,7 @@ async def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--capture", default=str(pathlib.Path.home() / ".config/ailink/capture.env"))
     parser.add_argument("--log", default=".token-watchdog.log")
-    parser.add_argument("--interval", type=int, default=1800, help="秒，默认 30 分钟")
+    parser.add_argument("--interval", type=int, default=1800, help="seconds, 30 minutes by default")
     parser.add_argument("--days", type=float, default=7)
     args = parser.parse_args()
 
@@ -110,12 +110,12 @@ async def main() -> int:
                     devices = await client.async_get_devices()
                 except api.AilinkError as err:
                     devices = []
-                    line = f"{stamp}  枚举设备失败: {err}"
+                    line = f"{stamp}  device enumeration failed: {err}"
                 else:
-                    line = f"{stamp}  账号设备数 {len(devices)}"
+                    line = f"{stamp}  devices in account: {len(devices)}"
                 if devices:
                     device_id = devices[0]["device_id"]
-                    line += "  → 立刻探活"
+                    line += "  -> knocking immediately"
             if device_id:
                 # Ask for the account's newest token first: if the phone app has
                 # logged in / rotated since the last round, this picks it up and
@@ -123,9 +123,9 @@ async def main() -> int:
                 before = client.token
                 renewed = await client.async_renew_token()
                 rotation = (
-                    "App 换过卡（getLastToken 拿到新 token）"
+                    "rotated (getLastToken returned a new token)"
                     if client.token != before
-                    else "无更新"
+                    else "no rotation"
                 )
                 ok, detail = await knock(client, device_id)
                 marker = "OK  " if ok else "FAIL"
@@ -138,12 +138,12 @@ async def main() -> int:
                         try:
                             d0 = datetime.strptime(first_ok, "%Y-%m-%d %H:%M:%S")
                             d1 = datetime.strptime(last_ok, "%Y-%m-%d %H:%M:%S")
-                            alive = f" | 已连续可用 {(d1 - d0).total_seconds() / 3600:.1f} 小时"
+                            alive = f" | usable for {(d1 - d0).total_seconds() / 3600:.1f} h"
                         except ValueError:
                             pass
                     line = (
                         f"{stamp}  {marker} {detail} | exp={client.token_expires_at}"
-                        f" | getLastToken: {rotation} (返回={renewed}){alive}"
+                        f" | getLastToken: {rotation} (returned={renewed}){alive}"
                     )
                 else:
                     line = f"{stamp}  {marker} {detail} | getLastToken: {rotation}"

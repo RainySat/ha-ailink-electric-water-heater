@@ -109,12 +109,12 @@ class AilinkConfigFlow(ConfigFlow, domain=DOMAIN):
     def _device_label(device: dict[str, Any]) -> str:
         parts = [str(device.get("name") or device["device_id"])]
         if device.get("model"):
-            parts.append(f"型号 {device['model']}")
+            parts.append(f"model {device['model']}")
         if device.get("category"):
-            parts.append(f"类别 {device['category']}")
+            parts.append(f"class {device['category']}")
         if device.get("room"):
             parts.append(str(device["room"]))
-        parts.append("在线" if device.get("online") else "离线")
+        parts.append("online" if device.get("online") else "offline")
         return " · ".join(parts)
 
     # -- steps --------------------------------------------------------------
@@ -166,7 +166,7 @@ class AilinkConfigFlow(ConfigFlow, domain=DOMAIN):
             for device in self._devices
         ]
         options.append(
-            SelectOptionDict(value=MANUAL_DEVICE, label="手动输入 Device ID")
+            SelectOptionDict(value=MANUAL_DEVICE, label="Enter the device id manually")
         )
         return self.async_show_form(
             step_id="device",

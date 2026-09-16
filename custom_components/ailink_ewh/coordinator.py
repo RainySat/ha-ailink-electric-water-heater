@@ -128,7 +128,7 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.entry.data.get("device_name")
             or self.device_data.get("deviceName")
             or self.model_name
-            or "A.O. Smith 电热水器"
+            or "A.O. Smith water heater"
         )
 
     # -- polling ------------------------------------------------------------
@@ -173,7 +173,7 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         await self.client.async_renew_token()
         if self.client.token != before:
-            _LOGGER.info("已同步到账号上更新的 access_token（App 或换卡接口刷新过）")
+            _LOGGER.info("Adopted a newer access_token from the account (rotated by the app or by the mint endpoint)")
             return True
 
         # Nothing newer on the server.  If our own token has passed its `exp`,
@@ -181,7 +181,7 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # endpoints - that is how the phone app gets its tokens, and it means we
         # never need the user to open the app.
         if expires <= now and await self.client.async_mint_token():
-            _LOGGER.info("已通过云端换卡接口领到新的 access_token（无需打开 App）")
+            _LOGGER.info("Minted a fresh access_token through the cloud (no phone app needed)")
             return True
 
         if expires <= now and self._warned_token != before:
@@ -189,9 +189,9 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # JWT `exp`, so this is not an error yet.
             self._warned_token = before
             _LOGGER.info(
-                "access_token 的 JWT 声明已于 %s 到期，且换卡接口未返回新 token；"
-                "当前 token 仍可正常使用，若实体变成不可用，在手机上打开一次"
-                "「AI家智控」App 即可自动恢复。",
+                "The JWT claim of access_token expired at %s and the mint endpoint returned "
+                "no new token. The current token still works; if the entities become "
+                "unavailable, open the phone app once and the integration recovers.",
                 expires.astimezone().strftime("%m-%d %H:%M"),
             )
         return False
@@ -204,7 +204,7 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise ConfigEntryAuthFailed(str(err)) from err
         except AilinkSignatureError as err:
             raise UpdateFailed(
-                f"云端拒绝了请求签名，可能需要更新集成：{err}"
+                f"the cloud rejected the request signing, the integration may need an update: {err}"
             ) from err
         except AilinkApiError as err:
             raise UpdateFailed(str(err)) from err
@@ -223,9 +223,9 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # polling can pick up a fresh token as soon as the phone app
                 # refreshes one.  We never stop retrying.
                 raise UpdateFailed(
-                    "access_token 已失效（云端未返回设备数据）。"
-                    "在手机上打开一次「AI家智控」App 即可恢复，集成会自动同步；"
-                    "也可以重新抓包后走「重新认证」立即恢复。"
+                    "access_token is no longer accepted (the cloud returned no device data). "
+                    "Open the phone app once and the integration picks up a new token, or "
+                    "paste one via Re-authenticate."
                 )
 
         output = extract_output_data(status)
@@ -261,7 +261,7 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             device_type = self.device_type
             if not product_type or not device_type:
                 raise HomeAssistantError(
-                    "设备信息不完整（productMajorClassCode/productModel 为空），无法下发指令"
+                    "device information is incomplete (productMajorClassCode/productModel are empty), cannot send commands"
                 )
             try:
                 await self.client.async_send_command(
@@ -273,10 +273,10 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
             except AilinkAuthError as err:
                 raise HomeAssistantError(
-                    f"access_token 已失效，请在手机上打开一次 App 后重试：{err}"
+                    f"access_token is no longer accepted, open the phone app once and retry: {err}"
                 ) from err
             except AilinkApiError as err:
-                raise HomeAssistantError(f"下发指令失败：{err}") from err
+                raise HomeAssistantError(f"command failed: {err}") from err
 
         if not confirm or not expect:
             await self.async_request_refresh()

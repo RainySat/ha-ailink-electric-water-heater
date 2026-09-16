@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 DOMAIN: Final = "ailink_ewh"
-NAME: Final = "Ai-LiNK 电热水器"
+NAME: Final = "Ai-LiNK Water Heater"
 MANUFACTURER: Final = "A.O. Smith"
 
 # --- config entry / options keys -------------------------------------------
@@ -28,11 +28,11 @@ DEFAULT_MIN_TEMP: Final = 35.0
 DEFAULT_MAX_TEMP: Final = 75.0
 DEFAULT_EXTRA_ATTRIBUTES: Final = True
 DEFAULT_CREATE_ALL_SWITCHES: Final = False
-DEFAULT_NAME: Final = "A.O. Smith 电热水器"
+DEFAULT_NAME: Final = "A.O. Smith water heater"
 
 # --- cloud endpoint --------------------------------------------------------
-# Reverse engineered from the official "AI家智控 / AI-LiNK 智慧家" H5 client
-# (ailink-appservice-h5-prd.hotwater.com.cn).
+# Reverse engineered from the official AI-LiNK H5 client (China),
+# served from ailink-appservice-h5-prd.hotwater.com.cn.
 API_BASE: Final = "https://ailink-api.hotwater.com.cn"
 API_PREFIX: Final = "/AiLinkService"
 

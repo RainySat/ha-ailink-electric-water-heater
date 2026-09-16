@@ -28,17 +28,17 @@ else
   run() { bash -c "$*"; }
 fi
 
-echo "→ 打包并同步 custom_components/ailink_ewh"
+echo "-> packaging and syncing custom_components/ailink_ewh"
 find custom_components/ailink_ewh -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
 tar czf /tmp/ailink_ewh.tgz custom_components/ailink_ewh
 if [[ -n "$HA_HOST" ]]; then
   scp -q /tmp/ailink_ewh.tgz "$HA_HOST:/tmp/"
-  run "cd '$HA_CONFIG' && rm -rf custom_components/ailink_ewh && tar xzf /tmp/ailink_ewh.tgz && echo '  已解压到 $HA_CONFIG'"
+  run "cd '$HA_CONFIG' && rm -rf custom_components/ailink_ewh && tar xzf /tmp/ailink_ewh.tgz && echo '  extracted into $HA_CONFIG'"
 else
-  run "cd '$HA_CONFIG' && rm -rf custom_components/ailink_ewh && tar xzf /tmp/ailink_ewh.tgz && echo '  已解压到 $HA_CONFIG'"
+  run "cd '$HA_CONFIG' && rm -rf custom_components/ailink_ewh && tar xzf /tmp/ailink_ewh.tgz && echo '  extracted into $HA_CONFIG'"
 fi
 
-echo "→ 在 HA 容器里做 import 校验"
+echo "-> import check inside the HA container"
 run "docker exec $CONTAINER python -c '
 import importlib, sys
 sys.path.insert(0, \"/config/custom_components\")
@@ -56,8 +56,8 @@ print(\"import check:\", \"OK\" if not bad else f\"{bad} failures\")
 '"
 
 if [[ "${1:-}" == "--restart" ]]; then
-  : "${HASS_URL:?请设置 HASS_URL}"; : "${HASS_TOKEN:?请设置 HASS_TOKEN}"
-  echo "→ 重启 Home Assistant"
+  : "${HASS_URL:?set HASS_URL}"; : "${HASS_TOKEN:?set HASS_TOKEN}"
+  echo "-> restarting Home Assistant"
   curl -s -o /dev/null -w "  restart HTTP %{http_code}\n" -X POST \
     "${HASS_URL%/}/api/services/homeassistant/restart" \
     -H "Authorization: Bearer $HASS_TOKEN" -H "Content-Type: application/json" -d '{}'

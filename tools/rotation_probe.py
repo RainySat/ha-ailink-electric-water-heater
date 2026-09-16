@@ -69,9 +69,9 @@ def describe(token: str) -> str:
         data = json.loads(base64.urlsafe_b64decode(payload))
         issued = datetime.fromtimestamp(data["current"] / 1000).strftime("%m-%d %H:%M:%S")
         exp = datetime.fromtimestamp(data["exp"]).strftime("%m-%d %H:%M:%S")
-        return f"签发={issued} exp={exp}"
+        return f"issued={issued} exp={exp}"
     except Exception:  # noqa: BLE001
-        return "无法解析"
+        return "unparsable"
 
 
 async def one_round(log, device_id: str, session) -> None:
@@ -90,17 +90,17 @@ async def one_round(log, device_id: str, session) -> None:
     before = client.token
     ok = await client.async_renew_token()
     newest = client.token
-    log(f"\n[{stamp}] === 本轮开始 ===")
-    log(f"  getLastToken: {'成功' if ok else '失败'}；当前最新卡 {describe(newest)}")
+    log(f"\n[{stamp}] === round start ===")
+    log(f"  getLastToken: {'ok' if ok else 'failed'}; newest token {describe(newest)}")
     if newest == before:
-        log("  （云端没有更新的卡，我们手里的就是最新的）")
+        log("  (no newer token on the server, ours is the newest)")
 
     exp = client.token_expires_at
     if exp is not None and exp.timestamp() > time.time():
-        log(f"  最新卡尚未过期（还有 {int(exp.timestamp() - time.time())} 秒），本轮不做复现实验")
+        log(f"  the newest token is still valid for {int(exp.timestamp() - time.time())}s, skipping this round")
         return
 
-    # 1) 复现 App 的那条请求（含双斜杠，与抓包一致）
+    # 1) replay the app request (including the double slash, exactly as captured)
     antifreeze = await client._post(  # noqa: SLF001 - deliberate low level probe
         "//appDevice/getAntifreeze",
         {
@@ -111,22 +111,22 @@ async def one_round(log, device_id: str, session) -> None:
             ),
         },
     )
-    log(f"  getAntifreeze 返回: {json.dumps(antifreeze, ensure_ascii=False)[:90]}")
+    log(f"  getAntifreeze returned: {json.dumps(antifreeze, ensure_ascii=False)[:90]}")
 
-    # 2) 普通读接口是否也会发新卡
+    # 2) does a plain read endpoint mint as well?
     status = await client.async_get_device_status(device_id)
     temp = (status.get("appDeviceStatusInfoEntity") or {}).get("statusInfo", "")
-    log(f"  getDeviceCurrInfo 返回: model={status.get('productModel')!r} statusInfo长度={len(temp)}")
-    log(f"  经过这两次请求后，客户端手里的卡: {describe(client.token)}")
+    log(f"  getDeviceCurrInfo returned: model={status.get('productModel')!r} statusInfo length={len(temp)}")
+    log(f"  token the client holds after both requests: {describe(client.token)}")
 
 
 async def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--at", default="", help="HH:MM:SS 开始时间，留空则立即开始")
+    parser.add_argument("--at", default="", help="start time HH:MM:SS; leave empty to start immediately")
     parser.add_argument("--log", default="/tmp/ailink/rotation_probe.log")
     parser.add_argument("--rounds", type=int, default=3)
-    parser.add_argument("--gap", type=int, default=120, help="每轮间隔秒")
-    parser.add_argument("--device-id", required=True, help="用于读取状态的设备 id")
+    parser.add_argument("--gap", type=int, default=120, help="seconds between rounds")
+    parser.add_argument("--device-id", required=True, help="device id used to read the status")
     args = parser.parse_args()
 
     import aiohttp
@@ -145,7 +145,7 @@ async def main() -> int:
         )
         wait = (target - datetime.now()).total_seconds()
         if wait > 0:
-            log(f"[{datetime.now():%H:%M:%S}] 等待到 {args.at}（{int(wait)} 秒）…")
+            log(f"[{datetime.now():%H:%M:%S}] waiting until {args.at} ({int(wait)}s)...")
             await asyncio.sleep(wait)
 
     async with aiohttp.ClientSession() as session:
@@ -153,7 +153,7 @@ async def main() -> int:
             try:
                 await one_round(log, args.device_id, session)
             except Exception as err:  # noqa: BLE001
-                log(f"  本轮出错: {type(err).__name__}: {err}")
+                log(f"  round failed: {type(err).__name__}: {err}")
             await asyncio.sleep(args.gap)
     return 0
 
