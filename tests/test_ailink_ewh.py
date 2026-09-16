@@ -261,6 +261,33 @@ class RenewalTest(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(api.AilinkAuthError):
             await client.async_get_device_status("d1")
 
+    async def test_mint_endpoint_adopts_the_response_header_token(self) -> None:
+        """The cloud mints a token in the response header once ours expired."""
+        session = _FakeSession(
+            [
+                _FakeResponse(
+                    200,
+                    {"status": "200", "msg": "操作成功", "info": {"url": "x", "isShow": "0"}},
+                    headers={"Authorization": "Bearer MINTEDTOKEN"},
+                )
+            ]
+        )
+        client = AilinkClient(  # type: ignore[arg-type]
+            session, access_token="EXPIRED", user_id="u", family_id="f"
+        )
+        self.assertTrue(await client.async_mint_token())
+        self.assertEqual(client.token, "MINTEDTOKEN")
+        self.assertIn("getAntifreeze", session.calls[0][0])
+
+    async def test_mint_endpoint_reports_no_new_token(self) -> None:
+        """Without a rotation header the call is a harmless no-op."""
+        session = _FakeSession([_FakeResponse(200, {"status": "200", "info": ""})])
+        client = AilinkClient(  # type: ignore[arg-type]
+            session, access_token="SAME", user_id="u", family_id="f"
+        )
+        self.assertFalse(await client.async_mint_token())
+        self.assertEqual(client.token, "SAME")
+
     async def test_renewal_is_never_permanently_given_up(self) -> None:
         """Repeated failures must not stop a later attempt from succeeding."""
         session = _FakeSession(

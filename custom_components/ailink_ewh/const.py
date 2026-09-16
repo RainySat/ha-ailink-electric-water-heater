@@ -41,6 +41,11 @@ PATH_DEVICE_INFO: Final = f"{API_PREFIX}/appDevice/getDeviceCurrInfo"
 PATH_INVOKE: Final = f"{API_PREFIX}/device/invokeMethod"
 PATH_LAST_TOKEN: Final = f"{API_PREFIX}/api/getLastToken"
 
+# A couple of endpoints re-issue a token in the Authorization *response* header
+# once the presented (account-current) token has expired.  getAntifreeze is the
+# one that answers 200 while doing so, which makes it a safe "mint" call.
+PATH_MINT: Final = f"{API_PREFIX}//appDevice/getAntifreeze"
+
 # Request signing (see the official H5 bundle):
 #   md5data = md5(exact request bytes)
 #   sign    = md5(md5data + timestamp + nonce + SIGN_SECRET)

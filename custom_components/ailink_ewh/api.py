@@ -28,6 +28,7 @@ import aiohttp
 from .const import (
     API_BASE,
     ENCODE_SALT,
+    PATH_MINT,
     PATH_DEVICE_INFO,
     PATH_HOMEPAGE,
     PATH_INVOKE,
@@ -191,6 +192,29 @@ class AilinkClient:
             return False
         await self._set_token(str(new_token), reason="getLastToken")
         return True
+
+    async def async_mint_token(self) -> bool:
+        """Ask the cloud to hand out a fresh token in the response header.
+
+        The cloud rotates tokens on a few endpoints when the presented token is
+        the account's current (and expired) one; ``getAntifreeze`` is the one
+        that still answers 200 while doing so.  ``_post`` adopts the response
+        header, so a successful call simply updates :attr:`token`.
+        """
+        payload = {
+            "familyId": self._family_id,
+            "userId": self._user_id,
+            "encode": self._encode(
+                {"familyId": self._family_id, "userId": self._user_id}
+            ),
+        }
+        before = self._token
+        try:
+            await self._post(PATH_MINT, payload, retry=False)
+        except AilinkError as err:
+            _LOGGER.debug("token mint request failed: %s", err)
+            return False
+        return self._token != before
 
     # -- requests -----------------------------------------------------------
     def _headers(self, body: bytes, timestamp: str, nonce: str) -> dict[str, str]:

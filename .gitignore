@@ -6,3 +6,4 @@ __pycache__/
 
 # CI 工作流（待 gh token 补 workflow 权限后再提交）
 .ci-backup/
+.deploy-local.sh

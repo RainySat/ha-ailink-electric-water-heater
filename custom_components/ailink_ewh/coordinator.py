@@ -164,15 +164,25 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         await self.client.async_renew_token()
         if self.client.token != before:
-            _LOGGER.info("已同步到账号上更新的 access_token（手机 App 刷新过）")
+            _LOGGER.info("已同步到账号上更新的 access_token（App 或换卡接口刷新过）")
             return True
+
+        # Nothing newer on the server.  If our own token has passed its `exp`,
+        # the cloud will mint a brand new one in the response header of a few
+        # endpoints - that is how the phone app gets its tokens, and it means we
+        # never need the user to open the app.
+        if expires <= now and await self.client.async_mint_token():
+            _LOGGER.info("已通过云端换卡接口领到新的 access_token（无需打开 App）")
+            return True
+
         if expires <= now and self._warned_token != before:
             # Informational only: the cloud keeps accepting a token well past its
             # JWT `exp`, so this is not an error yet.
             self._warned_token = before
             _LOGGER.info(
-                "access_token 的 JWT 声明已于 %s 到期（云端实测仍会接受一段时间）。"
-                "若实体变成不可用，在手机上打开一次「AI家智控」App 即可自动恢复。",
+                "access_token 的 JWT 声明已于 %s 到期，且换卡接口未返回新 token；"
+                "当前 token 仍可正常使用，若实体变成不可用，在手机上打开一次"
+                "「AI家智控」App 即可自动恢复。",
                 expires.astimezone().strftime("%m-%d %H:%M"),
             )
         return False
