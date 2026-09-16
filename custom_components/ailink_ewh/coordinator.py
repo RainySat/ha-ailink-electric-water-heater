@@ -71,6 +71,9 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._last_output: dict[str, Any] = {}
         self._last_renew_attempt: datetime | None = None
         self._warned_token: str | None = None
+        # token value we have already made a post-expiry attempt for; the first
+        # attempt after expiry should be prompt, later ones back off.
+        self._post_expiry_attempted: str | None = None
         interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         super().__init__(
             hass,
@@ -147,9 +150,13 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if force_gap is not None:
             gap = force_gap
         elif expires <= now:
-            # The JWT claim has passed but the cloud still accepts the token, so
-            # there is no rush: just keep an eye out for a newer one.
-            gap = EXPIRED_RENEW_GAP
+            # The JWT claim has passed.  Try promptly once (to mint a fresh token
+            # right away), then back off - the cloud accepts the stale token for
+            # a long time, so there is no rush afterwards.
+            if self._post_expiry_attempted != self.client.token:
+                gap = MIN_RENEW_GAP
+            else:
+                gap = EXPIRED_RENEW_GAP
         else:
             gap = MIN_RENEW_GAP
         if self._last_renew_attempt is not None and now - self._last_renew_attempt < gap:
@@ -157,6 +164,8 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         self._last_renew_attempt = now
         before = self.client.token
+        if expires <= now:
+            self._post_expiry_attempted = before
         _LOGGER.debug(
             "Asking the cloud for the account's newest token (JWT exp %s, %+.0f min)",
             expires.isoformat(),
