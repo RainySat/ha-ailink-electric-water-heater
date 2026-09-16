@@ -45,7 +45,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: AilinkConfigEntry) -> bo
         raise ConfigEntryNotReady(str(err)) from err
 
     entry.runtime_data = coordinator
-    entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
+    entry.async_on_unload(entry.add_update_listener(_async_reload_on_options_change))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
@@ -55,6 +55,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: AilinkConfigEntry) -> b
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
-async def _async_reload_entry(hass: HomeAssistant, entry: AilinkConfigEntry) -> None:
-    """Reload when the options change."""
+async def _async_reload_on_options_change(
+    hass: HomeAssistant, entry: AilinkConfigEntry
+) -> None:
+    """Reload the entry, but only when the *options* changed.
+
+    The coordinator writes renewed tokens back into ``entry.data``; that must not
+    reload the integration (it would briefly mark every entity unavailable).
+    """
+    coordinator = entry.runtime_data
+    if coordinator is None or coordinator.options_snapshot == dict(entry.options):
+        return
     await hass.config_entries.async_reload(entry.entry_id)

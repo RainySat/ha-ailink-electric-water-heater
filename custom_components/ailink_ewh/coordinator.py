@@ -67,6 +67,9 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.client = client
         self.entry = entry
         self.device_id = device_id
+        # Snapshot of entry.options, so the update listener can tell an options
+        # change (reload) apart from a token write-back (no reload).
+        self.options_snapshot: dict[str, Any] = dict(entry.options)
         self._command_lock = asyncio.Lock()
         self._last_output: dict[str, Any] = {}
         self._last_renew_attempt: datetime | None = None
