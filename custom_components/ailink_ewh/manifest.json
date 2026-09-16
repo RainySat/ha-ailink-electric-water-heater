@@ -1,0 +1,18 @@
+{
+  "domain": "ailink_ewh",
+  "name": "Ai-LiNK 电热水器 (A.O. Smith)",
+  "codeowners": [
+    "@RainySat"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/RainySat/ha-ailink-electric-water-heater",
+  "integration_type": "device",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/RainySat/ha-ailink-electric-water-heater/issues",
+  "loggers": [
+    "custom_components.ailink_ewh"
+  ],
+  "requirements": [],
+  "version": "0.1.0"
+}

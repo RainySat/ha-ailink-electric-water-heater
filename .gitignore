@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.token-watchdog.log
+
+# CI 工作流（待 gh token 补 workflow 权限后再提交）
+.ci-backup/

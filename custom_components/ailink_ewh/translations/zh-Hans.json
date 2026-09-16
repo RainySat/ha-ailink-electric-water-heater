@@ -1,0 +1,124 @@
+{
+  "config": {
+    "flow_title": "Ai-LiNK 电热水器 (A.O. Smith)",
+    "step": {
+      "user": {
+        "title": "连接 A.O. Smith 云",
+        "description": "填入从「AI家智控 / AI-LiNK 智慧家」App 抓包得到的认证参数。token 会由集成自动续期，正常情况下只需抓包一次。",
+        "data": {
+          "access_token": "access_token (JWT)",
+          "user_id": "user_id",
+          "family_id": "family_id",
+          "cookie": "cookie（可选）"
+        }
+      },
+      "device": {
+        "title": "选择热水器",
+        "description": "选择一个设备，方括号里的「类别」是云端的产品大类代码，可用来核对型号。",
+        "data": {
+          "device_id": "设备"
+        }
+      },
+      "manual": {
+        "title": "手动填写 Device ID",
+        "description": "设备列表为空时可直接填写 deviceId（可在抓包请求体里找到）。",
+        "data": {
+          "device_id": "deviceId"
+        }
+      },
+      "reauth_confirm": {
+        "title": "更新 access_token",
+        "description": "云端拒绝了当前 token 且无法自动续期，请重新抓包并粘贴新的 access_token。",
+        "data": {
+          "access_token": "access_token (JWT)"
+        }
+      },
+      "reconfigure": {
+        "title": "修改认证信息",
+        "data": {
+          "access_token": "access_token (JWT)",
+          "user_id": "user_id",
+          "family_id": "family_id",
+          "cookie": "cookie（可选）"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "认证失败：token / user_id / family_id 不正确，或 token 已过期",
+      "signature_error": "云端拒绝了请求签名（校验失败），请反馈以便适配",
+      "cannot_connect": "无法连接 A.O. Smith 云端",
+      "device_not_found": "找不到该设备，请检查 deviceId"
+    },
+    "abort": {
+      "already_configured": "该热水器已经接入",
+      "reauth_successful": "token 已更新",
+      "reconfigure_successful": "配置已更新"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "选项",
+        "data": {
+          "scan_interval": "轮询间隔（秒）",
+          "min_temp": "最低设定温度（°C）",
+          "max_temp": "最高设定温度（°C）",
+          "extra_attributes": "在热水器实体上暴露全部原始字段",
+          "create_all_switches": "创建全部开关实体（设备未上报的也创建）"
+        }
+      }
+    }
+  },
+  "entity": {
+    "water_heater": {
+      "ailink_ewh": {
+        "name": "电热水器"
+      }
+    },
+    "switch": {
+      "instant_heating": {
+        "name": "速热"
+      },
+      "disinfection": {
+        "name": "杀菌"
+      },
+      "aes": {
+        "name": "AES 智能节能"
+      },
+      "peak_valley": {
+        "name": "峰谷电"
+      },
+      "mesotherm": {
+        "name": "中温保温"
+      },
+      "capacity_boost": {
+        "name": "增容"
+      }
+    },
+    "sensor": {
+      "current_temperature": {
+        "name": "当前水温"
+      },
+      "work_state": {
+        "name": "运行状态",
+        "state": {
+          "off": "关机",
+          "heating": "加热中",
+          "scheduled": "预约中",
+          "standby": "保温中"
+        }
+      },
+      "fault": {
+        "name": "故障信息"
+      }
+    },
+    "binary_sensor": {
+      "heating": {
+        "name": "加热中"
+      },
+      "fault": {
+        "name": "故障"
+      }
+    }
+  }
+}

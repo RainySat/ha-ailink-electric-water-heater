@@ -1,0 +1,124 @@
+{
+  "config": {
+    "flow_title": "Ai-LiNK electric water heater (A.O. Smith)",
+    "step": {
+      "user": {
+        "title": "Connect to the A.O. Smith cloud",
+        "description": "Paste the credentials captured from the official AI家智控 / AI-LiNK 智慧家 app. The token is renewed automatically, so it only has to be captured once.",
+        "data": {
+          "access_token": "access_token (JWT)",
+          "user_id": "user_id",
+          "family_id": "family_id",
+          "cookie": "cookie (optional)"
+        }
+      },
+      "device": {
+        "title": "Select the water heater",
+        "description": "Pick a device. The category in brackets is the cloud product class code, useful to confirm the model.",
+        "data": {
+          "device_id": "Device"
+        }
+      },
+      "manual": {
+        "title": "Enter the device id manually",
+        "description": "Use this when device discovery returns nothing. The deviceId can be found in a captured request body.",
+        "data": {
+          "device_id": "deviceId"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update the access token",
+        "description": "The cloud rejected the stored token and it could not be renewed. Capture a new token and paste it here.",
+        "data": {
+          "access_token": "access_token (JWT)"
+        }
+      },
+      "reconfigure": {
+        "title": "Update credentials",
+        "data": {
+          "access_token": "access_token (JWT)",
+          "user_id": "user_id",
+          "family_id": "family_id",
+          "cookie": "cookie (optional)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Authentication failed: wrong token/user_id/family_id or the token expired",
+      "signature_error": "The cloud rejected our request signature (校验失败)",
+      "cannot_connect": "Cannot reach the A.O. Smith cloud",
+      "device_not_found": "Device not found, please check the deviceId"
+    },
+    "abort": {
+      "already_configured": "This water heater is already configured",
+      "reauth_successful": "Token updated",
+      "reconfigure_successful": "Configuration updated"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "scan_interval": "Poll interval (seconds)",
+          "min_temp": "Minimum target temperature (°C)",
+          "max_temp": "Maximum target temperature (°C)",
+          "extra_attributes": "Expose every raw field on the water heater entity",
+          "create_all_switches": "Create all switch entities, even unreported ones"
+        }
+      }
+    }
+  },
+  "entity": {
+    "water_heater": {
+      "ailink_ewh": {
+        "name": "Water heater"
+      }
+    },
+    "switch": {
+      "instant_heating": {
+        "name": "Instant heating"
+      },
+      "disinfection": {
+        "name": "Disinfection"
+      },
+      "aes": {
+        "name": "AES eco"
+      },
+      "peak_valley": {
+        "name": "Off-peak schedule"
+      },
+      "mesotherm": {
+        "name": "Warm holding"
+      },
+      "capacity_boost": {
+        "name": "Capacity boost"
+      }
+    },
+    "sensor": {
+      "current_temperature": {
+        "name": "Water temperature"
+      },
+      "work_state": {
+        "name": "Work state",
+        "state": {
+          "off": "Off",
+          "heating": "Heating",
+          "scheduled": "Scheduled",
+          "standby": "Holding"
+        }
+      },
+      "fault": {
+        "name": "Fault message"
+      }
+    },
+    "binary_sensor": {
+      "heating": {
+        "name": "Heating"
+      },
+      "fault": {
+        "name": "Fault"
+      }
+    }
+  }
+}
