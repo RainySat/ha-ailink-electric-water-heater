@@ -37,8 +37,7 @@ RENEW_AHEAD = timedelta(minutes=12)
 # Throttle for the token sync attempts.  Timed only - never a permanent give-up,
 # so a token that really died can be recovered whenever the app mints a new one.
 MIN_RENEW_GAP = timedelta(minutes=3)      # before the JWT claim expires
-EXPIRED_RENEW_GAP = timedelta(minutes=30)  # after it expired (cloud still accepts)
-FAILURE_RENEW_GAP = timedelta(minutes=5)   # the cloud stopped returning data
+FAILURE_RENEW_GAP = timedelta(minutes=5)   # an attempt produced nothing - retry soon
 
 
 def _matches(current: Any, expected: Any, tolerance: float) -> bool:
@@ -153,13 +152,14 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if force_gap is not None:
             gap = force_gap
         elif expires <= now:
-            # The JWT claim has passed.  Try promptly once (to mint a fresh token
-            # right away), then back off - the cloud accepts the stale token for
-            # a long time, so there is no rush afterwards.
+            # The JWT claim has passed: try promptly (to mint a fresh token right
+            # away), and if that produced nothing keep retrying every few minutes.
+            # The cloud accepts the stale token for a long time, so this is only
+            # about keeping a valid token in hand.
             if self._post_expiry_attempted != self.client.token:
                 gap = MIN_RENEW_GAP
             else:
-                gap = EXPIRED_RENEW_GAP
+                gap = FAILURE_RENEW_GAP
         else:
             gap = MIN_RENEW_GAP
         if self._last_renew_attempt is not None and now - self._last_renew_attempt < gap:
@@ -188,14 +188,18 @@ class AilinkCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return True
 
         if expires <= now and self._warned_token != before:
-            # Informational only: the cloud keeps accepting a token well past its
-            # JWT `exp`, so this is not an error yet.
+            # The current token is expired and neither getLastToken nor the mint
+            # endpoint handed out a replacement. The cloud still accepts the
+            # stale token, so this is a warning - retries continue every few
+            # minutes.
             self._warned_token = before
-            _LOGGER.info(
-                "The JWT claim of access_token expired at %s and the mint endpoint returned "
-                "no new token. The current token still works; if the entities become "
-                "unavailable, open the phone app once and the integration recovers.",
+            _LOGGER.warning(
+                "access_token expired at %s and no replacement could be obtained "
+                "(getLastToken and the mint endpoint both returned nothing). The stale "
+                "token is still accepted; retrying every %d minutes. If the entities "
+                "become unavailable, open the phone app once.",
                 expires.astimezone().strftime("%m-%d %H:%M"),
+                FAILURE_RENEW_GAP.total_seconds() // 60,
             )
         return False
 
