@@ -95,6 +95,16 @@
         "name": "Capacity boost"
       }
     },
+    "select": {
+      "heater_mode": {
+        "name": "Heating mode",
+        "state": {
+          "single_tank": "Single tank",
+          "dual_tank": "Dual tank",
+          "winter_large_volume": "Winter large volume"
+        }
+      }
+    },
     "sensor": {
       "current_temperature": {
         "name": "Water temperature"

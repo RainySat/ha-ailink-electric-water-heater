@@ -95,6 +95,16 @@
         "name": "增容"
       }
     },
+    "select": {
+      "heater_mode": {
+        "name": "加热模式",
+        "state": {
+          "single_tank": "单胆加热",
+          "dual_tank": "双胆加热",
+          "winter_large_volume": "冬季大水量"
+        }
+      }
+    },
     "sensor": {
       "current_temperature": {
         "name": "当前水温"

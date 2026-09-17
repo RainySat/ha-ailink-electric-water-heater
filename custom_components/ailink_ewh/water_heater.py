@@ -31,9 +31,11 @@ from .protocol import (
     KNOWN_FIELDS,
     derive_work_state,
     flag,
+    heater_mode_option,
     numeric,
     power_command,
     temperature_command,
+    temperature_is_adjustable,
 )
 
 # Fields that are always shown as attributes, even when they are empty.
@@ -171,6 +173,15 @@ class AilinkWaterHeater(AilinkEntity, WaterHeaterEntity):
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
+        if not temperature_is_adjustable(self.output):
+            # The device takes the command but ignores it, and the official client
+            # hides the control in this mode too.  Warn instead of raising: moving
+            # to another heating mode makes the very same call work.
+            _LOGGER.warning(
+                "Heating mode %s ignores target temperatures, so the new value will not "
+                "take effect until another mode is selected",
+                heater_mode_option(self.output),
+            )
         value = max(self._min, min(self._max, float(temperature)))
         await self.coordinator.async_send_command(
             SERVICE_SET_EWH,

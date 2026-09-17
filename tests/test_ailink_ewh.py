@@ -51,6 +51,10 @@ extract_output_data = protocol.extract_output_data
 power_command = protocol.power_command
 switch_command = protocol.switch_command
 temperature_command = protocol.temperature_command
+heater_mode_command = protocol.heater_mode_command
+heater_mode_option = protocol.heater_mode_option
+heater_mode_value = protocol.heater_mode_value
+temperature_is_adjustable = protocol.temperature_is_adjustable
 
 
 # NOTE: the Chinese strings below are *verbatim* payloads from the vendor cloud
@@ -167,6 +171,50 @@ class ProtocolTest(unittest.TestCase):
             ),
             {"PeakValley": {"OnOff": "0", "OpenTime": "22:00", "CloseTime": "08:00"}},
         )
+
+    def test_heater_mode_is_read_and_written_with_its_own_values(self) -> None:
+        # workModel is read, HeaterMode is written; the numbers come from the
+        # official H5 list for this model family (1/2/4), never from a position.
+        self.assertEqual(heater_mode_value({"workModel": "1"}), 1)
+        self.assertEqual(heater_mode_option({"workModel": "1"}), "single_tank")
+        self.assertEqual(heater_mode_option({"workModel": 2}), "dual_tank")
+        self.assertEqual(heater_mode_option({"workModel": "4"}), "winter_large_volume")
+        self.assertEqual(heater_mode_command("single_tank"), {"HeaterMode": "1"})
+        self.assertEqual(heater_mode_command("dual_tank"), {"HeaterMode": "2"})
+        self.assertEqual(heater_mode_command("winter_large_volume"), {"HeaterMode": "4"})
+
+        # A missing field must not invent a mode.
+        self.assertIsNone(heater_mode_value({}))
+        self.assertIsNone(heater_mode_option({}))
+
+        # Other families use the same field with other values for the third
+        # entry (0 for PE/NPE, E9W, BPW and D1; 3 for 50FW). Those must survive a
+        # round trip instead of being silently dropped.
+        for raw in ("0", "3"):
+            option = heater_mode_option({"workModel": raw})
+            self.assertEqual(option, f"mode_{raw}")
+            self.assertEqual(heater_mode_command(option), {"HeaterMode": raw})
+
+        self.assertIsNone(heater_mode_command("nonsense"))
+        self.assertIsNone(heater_mode_command("mode_x"))
+
+    def test_target_temperature_is_locked_in_one_heating_mode(self) -> None:
+        # The official client hides the temperature control when workModel is 4.
+        self.assertTrue(temperature_is_adjustable({"workModel": "1"}))
+        self.assertTrue(temperature_is_adjustable({"workModel": "2"}))
+        self.assertFalse(temperature_is_adjustable({"workModel": "4"}))
+        # Unknown/absent mode: assume the device behaves normally.
+        self.assertTrue(temperature_is_adjustable({}))
+
+    def test_heater_mode_mapping_matches_the_official_client(self) -> None:
+        # Mirrors the H5 helper: T() -> 单胆加热/双胆加热/冬季大水量 with values 1/2/4.
+        self.assertEqual(
+            {key: value for key, value in const.HEATER_MODES},
+            {"single_tank": 1, "dual_tank": 2, "winter_large_volume": 4},
+        )
+        self.assertEqual(const.HEATER_MODE_STATUS_FIELD, "workModel")
+        self.assertEqual(const.HEATER_MODE_COMMAND_FIELD, "HeaterMode")
+        self.assertIn("select", const.PLATFORMS)
 
 
 if __name__ == "__main__":

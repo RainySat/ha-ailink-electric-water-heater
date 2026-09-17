@@ -77,7 +77,26 @@ SWITCH_NESTED_FIELDS: Final = {
     "peak_valley": {"OpenTime": "pvStartTime", "CloseTime": "pvEndTime"},
 }
 
-PLATFORMS: Final = ["water_heater", "switch", "sensor", "binary_sensor"]
+# --- heating modes ---------------------------------------------------------
+# The device reports `workModel` and is switched with `HeaterMode`.  The official
+# H5 client builds that list per model family; for the models this integration
+# targets (EWH-HGAWi and relatives) it is 1/2/4.
+#
+# Do not derive the value from the position in the list: other families reuse the
+# same field with their own labels AND their own values (the third entry is 0 for
+# the PE/NPE, E9W, BPW and D1 families, 3 for 50FW, and 4 for HGX/HGE/HT5).
+HEATER_MODE_STATUS_FIELD: Final = "workModel"
+HEATER_MODE_COMMAND_FIELD: Final = "HeaterMode"
+HEATER_MODES: Final = (
+    ("single_tank", 1),
+    ("dual_tank", 2),
+    ("winter_large_volume", 4),
+)
+# In this mode the device stops accepting a target temperature; the official
+# client hides the control as well (`return 4 !== workModel`).
+HEATER_MODE_TEMPERATURE_LOCKED: Final = 4
+
+PLATFORMS: Final = ["water_heater", "switch", "select", "sensor", "binary_sensor"]
 
 # Work state reported by the official H5 client.
 STATE_HEATING: Final = "heating"

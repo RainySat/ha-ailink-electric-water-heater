@@ -127,6 +127,7 @@ pick your water heater from the list (the list shows each device's class code an
 | `sensor` | fault message (fault and warning codes with their text) |
 | `binary_sensor` | heating / fault |
 | `switch` | instant heating, disinfection, AES eco, off-peak window, warm holding, capacity boost — only those the device actually reports |
+| `select` | heating mode — single tank / dual tank / winter large volume (`workModel`, written with `HeaterMode`) |
 
 ## Options
 
@@ -150,11 +151,17 @@ In the HomeKit Bridge config pick:
 ## Known limitations
 
 - Scheduled heating (`TimerOne` / `TimerTwo` / `CountdownOne`), the off-peak time window and the warm
-  holding temperature need writes that carry a time range; only the on/off switches are exposed today —
-  use the official app for the time ranges.
+  holding temperature need writes that carry a time range; only the on/off switches are exposed today —  use the official app for the time ranges.
 - The cloud API is private and can change without notice. If you see `999999`, include the HA log in an
   issue (the integration redacts tokens).
 - The account's "family" (`familyId`) is part of the credentials; changing family requires reconfiguring.
+- In the *winter large volume* heating mode (`workModel = 4`) the device ignores target temperatures and
+  refuses to switch capacity boost off — the official app hides/blocks both as well. Home Assistant logs a
+  warning instead of failing, because switching to another heating mode makes the same call work.
+- The heating mode list is defined per model family in the vendor app. This integration names the three
+  modes of the models it was verified on (`1` / `2` / `4`); other families reuse the same field with their
+  own labels and values (the third one is `0` for PE/NPE, E9W, BPW and D1, `3` for 50FW), so a mode that is
+  not in that table is shown as `mode_<n>` and can still be selected again.
 
 ## Troubleshooting
 
@@ -168,7 +175,7 @@ In the HomeKit Bridge config pick:
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install aiohttp
-.venv/bin/python -m unittest discover -s tests -v   # 14 offline tests (signing, status decoding, renewal)
+.venv/bin/python -m unittest discover -s tests -v   # 17 offline tests (signing, status decoding, renewal)
 
 # capture helper: list devices / dump every reported field / test token renewal
 .venv/bin/python tools/probe.py --token 'eyJ…' --user-id … --family-id … --renew

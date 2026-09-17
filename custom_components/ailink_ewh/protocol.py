@@ -9,7 +9,15 @@ import json
 import math
 from typing import Any, Final
 
-from .const import STATE_HEATING, STATE_SCHEDULED, STATE_STANDBY
+from .const import (
+    HEATER_MODE_COMMAND_FIELD,
+    HEATER_MODES,
+    HEATER_MODE_STATUS_FIELD,
+    HEATER_MODE_TEMPERATURE_LOCKED,
+    STATE_HEATING,
+    STATE_SCHEDULED,
+    STATE_STANDBY,
+)
 
 # Fields worth exposing as attributes / sensors.
 KNOWN_FIELDS: Final = (
@@ -185,3 +193,43 @@ def observed_switches(output: dict[str, Any]) -> list[tuple[str, str, str, str]]
     from .const import SWITCH_TYPES
 
     return [spec for spec in SWITCH_TYPES if spec[1] in output]
+
+
+def heater_mode_value(output: dict[str, Any]) -> int | None:
+    """Return the reported heating mode (`workModel`)."""
+    value = numeric(output, HEATER_MODE_STATUS_FIELD)
+    return None if value is None else int(value)
+
+
+def heater_mode_option(output: dict[str, Any]) -> str | None:
+    """Return the heating mode as a select option key.
+
+    A mode the device reports but this table does not name is returned as
+    ``mode_<n>``: the current mode is then never silently lost, and another
+    model family can still be switched back to what it was using.
+    """
+    value = heater_mode_value(output)
+    if value is None:
+        return None
+    for key, mapped in HEATER_MODES:
+        if mapped == value:
+            return key
+    return f"mode_{value}"
+
+
+def heater_mode_command(option: str) -> dict[str, str] | None:
+    """Build the `HeaterMode` input for a select option, or None if unknown."""
+    for key, value in HEATER_MODES:
+        if key == option:
+            return {HEATER_MODE_COMMAND_FIELD: str(value)}
+    if option.startswith("mode_"):
+        try:
+            return {HEATER_MODE_COMMAND_FIELD: str(int(option[5:]))}
+        except ValueError:
+            return None
+    return None
+
+
+def temperature_is_adjustable(output: dict[str, Any]) -> bool:
+    """Return whether the device still accepts a target temperature."""
+    return heater_mode_value(output) != HEATER_MODE_TEMPERATURE_LOCKED
