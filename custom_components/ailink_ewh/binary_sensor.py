@@ -28,9 +28,14 @@ async def async_setup_entry(
 
 
 class AilinkHeatingBinarySensor(AilinkEntity, BinarySensorEntity):
-    """Whether the heating element is currently running."""
+    """Whether the heating element is currently running.
 
-    _attr_device_class = BinarySensorDeviceClass.HEAT
+    ``RUNNING`` (running / not running), not ``HEAT``: HA's ``heat`` device class
+    means "the thing is hot", and it renders as "Hot" in English and "过热" in
+    Chinese - a heating element that is simply working is not overheating.
+    """
+
+    _attr_device_class = BinarySensorDeviceClass.RUNNING
     _attr_translation_key = "heating"
 
     def __init__(self, coordinator: AilinkCoordinator) -> None:

@@ -125,7 +125,7 @@ pick your water heater from the list (the list shows each device's class code an
 | `sensor` | actual water temperature (`realTemp`) |
 | `sensor` | work state: off / heating / scheduled / holding (same derivation as the official app) |
 | `sensor` | fault message (fault and warning codes with their text) |
-| `binary_sensor` | heating / fault |
+| `binary_sensor` | heating (device class `running`) / fault (device class `problem`) |
 | `switch` | instant heating, disinfection, AES eco, off-peak window, warm holding, capacity boost — only those the device actually reports |
 | `select` | heating mode — single tank / dual tank / winter large volume (`workModel`, written with `HeaterMode`) |
 
