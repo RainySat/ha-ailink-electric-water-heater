@@ -5,12 +5,13 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.water_heater import (
-    STATE_ELECTRIC,
+    STATE_OFF,
+    STATE_ON,
     WaterHeaterEntity,
     WaterHeaterEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_TEMPERATURE, STATE_OFF, UnitOfTemperature
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -76,9 +77,16 @@ class AilinkWaterHeater(AilinkEntity, WaterHeaterEntity):
     """The electric water heater itself."""
 
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    # ON_OFF is what HomeKit and automations use; OPERATION_MODE with an
+    # off/on list is what the Home Assistant frontend renders.  The frontend has
+    # no on/off widget for water heaters - it only offers a temperature control
+    # and an operation mode selector - so both features are needed.
     _attr_supported_features = (
-        WaterHeaterEntityFeature.TARGET_TEMPERATURE | WaterHeaterEntityFeature.ON_OFF
+        WaterHeaterEntityFeature.TARGET_TEMPERATURE
+        | WaterHeaterEntityFeature.ON_OFF
+        | WaterHeaterEntityFeature.OPERATION_MODE
     )
+    _attr_operation_list = [STATE_OFF, STATE_ON]
     _attr_target_temperature_step = 1.0
     _attr_precision = 1.0
     _attr_name = None
@@ -124,7 +132,16 @@ class AilinkWaterHeater(AilinkEntity, WaterHeaterEntity):
         state = self.is_on
         if state is None:
             return None
-        return STATE_ELECTRIC if state else STATE_OFF
+        return STATE_ON if state else STATE_OFF
+
+    async def async_set_operation_mode(self, operation_mode: str) -> None:
+        """Handle the frontend's operation mode selector."""
+        if operation_mode == STATE_ON:
+            await self.async_turn_on()
+        elif operation_mode == STATE_OFF:
+            await self.async_turn_off()
+        else:
+            raise ValueError(f"Unsupported operation mode: {operation_mode}")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
